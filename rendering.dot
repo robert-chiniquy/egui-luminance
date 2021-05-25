@@ -1,0 +1,24 @@
+digraph d {
+
+  trimesh -> trimesh_t[label=transformed_by_model_view];
+
+
+  trimesh_t -> normals;
+  trimesh_t -> vertices;
+
+  model_view->normal_matrix[label="transposed"];
+  normal_matrix -> glsl [label="as uniform"];
+
+  vertices -> glsl[label="as buffer"];
+  normals -> glsl [label="as buffer"];
+}
+
+
+
+
+
+
+
+
+
+
