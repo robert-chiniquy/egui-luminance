@@ -1,8 +1,12 @@
-in vec3 v_color;
+in vec3 v_normal;
 
-// we will output a single color
-out vec4 frag_color;
+out vec3 frag_color;
 
 void main() {
-  frag_color = vec4(v_color, 1.0);
+  vec3 obj_color = vec3(.6, .6, .6);
+  vec3 light_dir = vec3(0., -1., -.5);
+  float kd = dot(v_normal, -light_dir);
+
+  frag_color = obj_color * kd;
+  //gl_FragColor = obj_color * kd;
 }
