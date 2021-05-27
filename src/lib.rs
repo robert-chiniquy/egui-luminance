@@ -3,7 +3,6 @@
 
 #[macro_use]
 mod utils;
-pub mod object;
 pub mod scene;
 
 use wasm_bindgen::prelude::*;

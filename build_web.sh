@@ -10,6 +10,7 @@
 
 # # https://github.com/WebAssembly/binaryen
 # wasm-opt -Oz -o $NAME.wasm1 $NAME.wasm
+# egui uses -O2 --fast-math
 
 # mv $NAME.wasm1 $NAME.wasm
 

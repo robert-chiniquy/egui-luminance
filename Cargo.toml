@@ -16,9 +16,8 @@ opt-level = 2
 # panic = 'abort'
 # codegen-units = 1
 
-# would love to get wasm-pack working here
 [package.metadata.wasm-pack.profile.release]
-# wasm-opt = ['-O4']
+wasm-opt = ['-O4']
 
 
 [dependencies]
@@ -30,7 +29,5 @@ luminance-windowing = "0.9"
 js-sys = "0.3.50"
 wasm-bindgen = "0.2.73"
 web-sys = { version = "0.3.44", features = ["console"] }
-cgmath = "0.17"
-ncollide3d = "0.29.0"
-nalgebra = "0.26.2"
-
+egui = "0.12.0"
+getrandom = { version = "0.2", features = ["js"] }
