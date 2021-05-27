@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 [profile.release]
 debug = true
 lto = true
+opt-level = 2
 #opt-level = "s"
 # opt-level = "z"
 # panic = 'abort'
@@ -22,7 +23,7 @@ lto = true
 
 [dependencies]
 luminance = "0.43.2"
-luminance-front = "0.3"
+luminance-front = { version = "0.3", no-default-features = true, features = ["webgl2"] }
 luminance-derive = "0.6"
 luminance-web-sys = "0.2"
 luminance-windowing = "0.9"

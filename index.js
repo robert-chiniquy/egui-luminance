@@ -1,13 +1,13 @@
 import {
-  Scene
+  App
 } from './pkg';
 
 
-const s = Scene.new();
+const s = App.new();
 var t = 1;
 
 const renderLoop = () => {
-  s.tick(t++/10);
+  s.tick(t++/50);
   requestAnimationFrame(renderLoop);
 };
 
