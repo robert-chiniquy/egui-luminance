@@ -9,15 +9,15 @@ crate-type = ["cdylib"]
 
 [profile.release]
 debug = true
-lto = true
-opt-level = 2
+# lto = true
+# opt-level = 2
 #opt-level = "s"
 # opt-level = "z"
 # panic = 'abort'
 # codegen-units = 1
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ['-O4']
+#wasm-opt = ['-O4']
 
 
 [dependencies]
