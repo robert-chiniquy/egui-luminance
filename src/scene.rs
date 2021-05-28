@@ -19,9 +19,11 @@ use luminance_web_sys::WebSysWebGL2Surface;
 use egui::epaint::Texture as EguiTexture;
 use egui::{CtxRef, RawInput};
 
-const CANVAS: &str = "canvas"; // id of canvas in DOM
-const VS_STR: &str = include_str!("shaders/vertex_100es.glsl");
+const CANVAS: &str = "canvas";
+// const VS_STR: &str = include_str!("shaders/vertex_100es.glsl");
 const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
+const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
+//const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
 
 pub type VertexIndex = u32;
 
@@ -90,6 +92,8 @@ impl Scene {
             canvas_size: [0., 0.],
         }
     }
+
+    //    fn egui_texture_needs_update
 
     fn write_egui_texture(&mut self, texture: &mut Texture<Dim2, RGBA8UI>) {
         let egui_texture = match self.egui_texture.clone() {
@@ -202,6 +206,10 @@ impl Scene {
             });
         });
 
+        // todo reduce loading calls in hot loop
+        // egui_web has:
+        //  let internal_format = Gl::SRGB8_ALPHA8;
+        //  let src_type = Gl::UNSIGNED_BYTE;
         let mut ui_tex: Texture<Dim2, RGBA8UI> = Texture::new(
             &mut surface,
             self.egui_texture_size,
@@ -240,6 +248,7 @@ impl Scene {
         // egui uses premultiplied alpha, so make sure your blending function is (ONE, ONE_MINUS_SRC_ALPHA).
         // Factor::SrcAlphaComplement => WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         // Backface culling is disabled by default
+        // egui_web uses a scissor region
         let render_st = &RenderState::default().set_blending(Blending {
             equation: Equation::Min,
             src: Factor::One,

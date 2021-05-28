@@ -1,3 +1,4 @@
+// luminance pragmas in the #version 300 es for all shaders
 precision mediump float;
 precision mediump usampler2D;
 
@@ -36,16 +37,16 @@ vec4 linear_from_srgba(vec4 srgba) {
 void main() {
   // this stanza may be for webgl1?
   // We must decode the colors, since WebGL doesn't come with sRGBA textures:
-  uvec4 i = texture(u_sampler, v_tc) * uint(255);
-  vec4 fl = vec4(float(i.r), float(i.g), float(i.b), float(i.a));
-  vec4 texture_rgba = linear_from_srgba(fl);
+  // uvec4 i = texture(u_sampler, v_tc) * uint(255);
+  // vec4 fl = vec4(float(i.r), float(i.g), float(i.b), float(i.a));
+  // vec4 texture_rgba = linear_from_srgba(fl);
   // end stanza which might be wrong
 
   // this stanza may be for webgl2?
   // if so, these two stanzas are alternatives
   // from the es300 example: The texture is set up with `SRGB8_ALPHA8`, so no need to decode here!
-  // uvec4 i = texture(u_sampler, v_tc);
-  // vec4 texture_rgba = vec4(float(i.r), float(i.g), float(i.b), float(i.a));
+  uvec4 i = texture(u_sampler, v_tc);
+  vec4 texture_rgba = vec4(float(i.r), float(i.g), float(i.b), float(i.a));
   // end second stanza which might be wrong
 
   /// Multiply vertex color with texture color (in linear space).
