@@ -3,8 +3,6 @@
 #define texture2D texture
 #define GL2
 
-precision mediump usampler2D;
-
 precision mediump float;
 uniform sampler2D u_sampler;
 in vec4 v_rgba;
@@ -30,7 +28,7 @@ void main() {
   vec4 texture_rgba = texture2D(u_sampler, v_tc);
 
   /// Multiply vertex color with texture color (in linear space).
-  frag_color = v_rgba * texture_rgba;
+  // frag_color = v_rgba * texture_rgba;
 
   // We must gamma-encode again since WebGL doesn't support linear blending in the framebuffer.
   frag_color = srgba_from_linear(v_rgba * texture_rgba) / 255.0;

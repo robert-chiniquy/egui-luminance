@@ -6,7 +6,7 @@ use luminance::render_state::RenderState;
 
 use luminance::blending::{Blending, Equation, Factor};
 use luminance::pipeline::{PipelineState, TextureBinding};
-use luminance::pixel::{NormUnsigned, Unsigned, RGBA8UI, SRGB8UI, SRGBA8UI};
+use luminance::pixel::{NormUnsigned, SRGBA8UI};
 use luminance::tess::Mode;
 use luminance::texture::{Dim2, GenMipmaps, MagFilter, MinFilter, Sampler};
 use luminance_derive::{Semantics, UniformInterface, Vertex};
@@ -20,8 +20,6 @@ use egui::epaint::Texture as EguiTexture;
 use egui::{CtxRef, RawInput};
 
 const CANVAS: &str = "canvas";
-// const VS_STR: &str = include_str!("shaders/vertex_100es.glsl");
-// const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
 const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
 const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
 
@@ -51,7 +49,6 @@ struct EguiShaderInterface {
     #[uniform(unbound)]
     u_screen_size: Uniform<[f32; 2]>,
     #[uniform(unbound)]
-    //       (PixelType::Unsigned, Dim::Dim2) => UniformType::UISampler2D,
     u_sampler: Uniform<TextureBinding<Dim2, NormUnsigned>>,
 }
 
@@ -67,7 +64,6 @@ impl From<egui::Pos2> for EguiTextureCoords {
     }
 }
 
-// should i convert away from this alpha / gamma / linear thing here?
 impl From<egui::Color32> for EguiVertexColor {
     fn from(c: egui::Color32) -> Self {
         EguiVertexColor::new(c.to_array())
@@ -76,7 +72,7 @@ impl From<egui::Color32> for EguiVertexColor {
 
 pub struct Scene {
     egui_ctx: CtxRef,
-    egui_texture: Option<Arc<EguiTexture>>, // todo texture version
+    egui_texture: Option<Arc<EguiTexture>>,
     egui_texture_size: [u32; 2],
     egui_texture_version: Option<u64>,
     canvas_size: [f32; 2],
@@ -221,10 +217,8 @@ impl Scene {
                 WebGl2RenderingContext::UNSIGNED_BYTE,
             ))
             }
-            SRGBA8UI vs             SRGB8UI
-
         */
-        let mut ui_tex: Texture<Dim2, SRGBA8UI /*RGBA8UI*/> = Texture::new(
+        let mut ui_tex: Texture<Dim2, SRGBA8UI> = Texture::new(
             &mut surface,
             self.egui_texture_size,
             0,
@@ -264,10 +258,9 @@ impl Scene {
         // Backface culling is disabled by default
         // egui_web uses a scissor region
         let render_st = &RenderState::default().set_blending(Blending {
-            equation: Equation::Min,
+            equation: Equation::Additive,
             src: Factor::One,
             dst: Factor::SrcAlphaComplement,
-            // dst: Factor::One,
         });
 
         let _ = surface
