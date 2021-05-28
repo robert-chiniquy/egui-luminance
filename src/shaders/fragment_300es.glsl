@@ -6,7 +6,7 @@
 precision mediump usampler2D;
 
 precision mediump float;
-uniform usampler2D u_sampler;
+uniform sampler2D u_sampler;
 in vec4 v_rgba;
 in vec2 v_tc;
 

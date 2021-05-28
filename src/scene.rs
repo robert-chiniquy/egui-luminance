@@ -6,7 +6,7 @@ use luminance::render_state::RenderState;
 
 use luminance::blending::{Blending, Equation, Factor};
 use luminance::pipeline::{PipelineState, TextureBinding};
-use luminance::pixel::{Unsigned, RGBA8UI};
+use luminance::pixel::{NormUnsigned, Unsigned, RGBA8UI, SRGB8UI, SRGBA8UI};
 use luminance::tess::Mode;
 use luminance::texture::{Dim2, GenMipmaps, MagFilter, MinFilter, Sampler};
 use luminance_derive::{Semantics, UniformInterface, Vertex};
@@ -21,9 +21,9 @@ use egui::{CtxRef, RawInput};
 
 const CANVAS: &str = "canvas";
 // const VS_STR: &str = include_str!("shaders/vertex_100es.glsl");
-const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
+// const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
 const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
-//const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
+const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
 
 pub type VertexIndex = u32;
 
@@ -52,7 +52,7 @@ struct EguiShaderInterface {
     u_screen_size: Uniform<[f32; 2]>,
     #[uniform(unbound)]
     //       (PixelType::Unsigned, Dim::Dim2) => UniformType::UISampler2D,
-    u_sampler: Uniform<TextureBinding<Dim2, Unsigned>>,
+    u_sampler: Uniform<TextureBinding<Dim2, NormUnsigned>>,
 }
 
 impl From<egui::Pos2> for EguiVertexPosition {
@@ -95,7 +95,7 @@ impl Scene {
 
     //    fn egui_texture_needs_update
 
-    fn write_egui_texture(&mut self, texture: &mut Texture<Dim2, RGBA8UI>) {
+    fn write_egui_texture(&mut self, texture: &mut Texture<Dim2, SRGBA8UI>) {
         let egui_texture = match self.egui_texture.clone() {
             Some(et) => et,
             None => {
@@ -210,7 +210,21 @@ impl Scene {
         // egui_web has:
         //  let internal_format = Gl::SRGB8_ALPHA8;
         //  let src_type = Gl::UNSIGNED_BYTE;
-        let mut ui_tex: Texture<Dim2, RGBA8UI> = Texture::new(
+        /*
+        pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
+        match (pf.format, pf.encoding) {
+
+            (Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::NormUnsigned) => {
+            Some((
+                WebGl2RenderingContext::RGBA,
+                WebGl2RenderingContext::SRGB8_ALPHA8,
+                WebGl2RenderingContext::UNSIGNED_BYTE,
+            ))
+            }
+            SRGBA8UI vs             SRGB8UI
+
+        */
+        let mut ui_tex: Texture<Dim2, SRGBA8UI /*RGBA8UI*/> = Texture::new(
             &mut surface,
             self.egui_texture_size,
             0,
