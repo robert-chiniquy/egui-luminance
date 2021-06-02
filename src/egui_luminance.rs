@@ -198,7 +198,7 @@ impl EguiLuminance {
         // Backface culling is disabled by default
         // egui_web uses a scissor region
         let render_st = &RenderState::default().set_blending(Blending {
-            equation: Equation::Additive,
+            equation: Equation::Max, // set to Equation::Min to see the Egui region since drawing is broken
             src: Factor::One,
             dst: Factor::SrcAlphaComplement,
         });
