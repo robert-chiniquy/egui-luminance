@@ -28,7 +28,7 @@ void main() {
   vec4 texture_rgba = texture2D(u_sampler, v_tc);
 
   /// Multiply vertex color with texture color (in linear space).
-  // frag_color = v_rgba * texture_rgba;
+  frag_color = v_rgba * texture_rgba;
 
   // We must gamma-encode again since WebGL doesn't support linear blending in the framebuffer.
   frag_color = srgba_from_linear(v_rgba * texture_rgba) / 255.0;
@@ -36,4 +36,7 @@ void main() {
   // WebGL doesn't support linear blending in the framebuffer,
   // so we apply this hack to at least get a bit closer to the desired blending:
   frag_color.a = pow(frag_color.a, 1.6); // Empiric nonsense
+
+//  frag_color = srgba_from_linear(v_rgba) / 255.0;
+//  frag_color = vec4(0.4, 0.0, 0.4, 1.0);
 }

@@ -8,7 +8,7 @@ use luminance::blending::{Blending, Equation, Factor};
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormUnsigned, SRGBA8UI};
 use luminance::tess::Mode;
-use luminance::texture::{Dim2, GenMipmaps, MagFilter, MinFilter, Sampler};
+use luminance::texture::{Dim2, GenMipmaps, MinFilter, Sampler};
 use luminance_derive::{Semantics, UniformInterface, Vertex};
 use luminance_front::shader::Uniform;
 use luminance_front::tess::Tess;
@@ -20,8 +20,11 @@ use egui::epaint::Texture as EguiTexture;
 use egui::{CtxRef, RawInput};
 
 const CANVAS: &str = "canvas";
-const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
-const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
+// const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
+// const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
+
+const VS_STR: &str = include_str!("shaders/vertex_debug_texture.glsl");
+const FS_STR: &str = include_str!("shaders/fragment_debug_texture.glsl");
 
 pub type VertexIndex = u32;
 
@@ -104,18 +107,13 @@ impl Scene {
             return;
         }
 
-        // log!(
-        //     "Loading egui texture, pixels: {:?}",
-        //     egui_texture.pixels.len()
-        // );
-
         let mut texels: Vec<(u8, u8, u8, u8)> = Vec::with_capacity(egui_texture.pixels.len());
 
         for srgba in egui_texture.srgba_pixels() {
             texels.push((srgba.r(), srgba.g(), srgba.b(), srgba.a()));
         }
 
-        //log!("{:?}", texels);
+        //        log!("{:?}", texels);
 
         let res = texture.upload(GenMipmaps::No, &texels);
         match res {
@@ -134,8 +132,8 @@ impl Scene {
         C: GraphicsContext<Backend = Backend>,
         F: Fn(&CtxRef),
     {
-        let i = RawInput::default();
-        // todo handle input
+        let i = RawInput::default(); // todo handle input
+
         self.egui_ctx.begin_frame(i);
 
         // todo factor out egui texture stuff
@@ -171,18 +169,16 @@ impl Scene {
 
         //log!("egui vertices: {:?}", &vertices);
         //log!("egui indices: {:?}", indices);
-        //vertices.iter().for_each(|v| log!("{:?} ", v.srgba));
-        //vertices.iter().for_each(|v| log!("{:?} ", v.tc));
+        // vertices.iter().for_each(|v| log!("{:?} ", v.srgba));
+        // vertices.iter().for_each(|v| log!("{:?} ", v.tc));
 
-        let u: Tess<EguiVertex, VertexIndex> = surface
+        surface
             .new_tess()
             .set_vertices(vertices)
             .set_indices(indices)
-            .set_mode(Mode::TriangleStrip)
+            .set_mode(Mode::Triangle)
             .build()
-            .unwrap();
-
-        u
+            .unwrap()
     }
 
     pub fn render(&mut self, t: f32) {
@@ -203,37 +199,35 @@ impl Scene {
         });
 
         // todo reduce loading calls in hot loop
-        // egui_web has:
-        //  let internal_format = Gl::SRGB8_ALPHA8;
-        //  let src_type = Gl::UNSIGNED_BYTE;
-        /*
-        pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
-        match (pf.format, pf.encoding) {
-
-            (Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::NormUnsigned) => {
-            Some((
-                WebGl2RenderingContext::RGBA,
-                WebGl2RenderingContext::SRGB8_ALPHA8,
-                WebGl2RenderingContext::UNSIGNED_BYTE,
-            ))
-            }
-        */
         let mut ui_tex: Texture<Dim2, SRGBA8UI> = Texture::new(
             &mut surface,
             self.egui_texture_size,
             0,
             Sampler {
-                // wrap_r: Wrap::ClampToEdge,
-                // wrap_s: Wrap::ClampToEdge,
-                // wrap_t: Wrap::ClampToEdge,
-                min_filter: MinFilter::Nearest,
-                mag_filter: MagFilter::Nearest,
-                // depth_comparison: None,
+                min_filter: MinFilter::Linear,
                 ..Sampler::default()
             },
         )
         .expect("luminance texture creation");
+
         self.write_egui_texture(&mut ui_tex);
+
+        // egui uses premultiplied alpha, so make sure your blending function is (ONE, ONE_MINUS_SRC_ALPHA).
+        // Factor::SrcAlphaComplement => WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+        // Backface culling is disabled by default
+        // egui_web uses a scissor region
+        let render_st = &RenderState::default(); //.set_blending(Blending {
+                                                 //     equation: Equation::Additive,
+                                                 //     src: Factor::One,
+                                                 //     dst: Factor::SrcAlphaComplement,
+                                                 // });
+
+        let tess = surface
+            .new_tess()
+            .set_vertex_nb(4)
+            .set_mode(Mode::TriangleFan)
+            .build()
+            .unwrap();
 
         let back_buffer = surface.back_buffer().unwrap();
 
@@ -253,28 +247,19 @@ impl Scene {
 
         let mut program = built_program.ignore_warnings();
 
-        // egui uses premultiplied alpha, so make sure your blending function is (ONE, ONE_MINUS_SRC_ALPHA).
-        // Factor::SrcAlphaComplement => WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-        // Backface culling is disabled by default
-        // egui_web uses a scissor region
-        let render_st = &RenderState::default().set_blending(Blending {
-            equation: Equation::Additive,
-            src: Factor::One,
-            dst: Factor::SrcAlphaComplement,
-        });
-
         let _ = surface
             .new_pipeline_gate()
             .pipeline(
                 &back_buffer,
-                &PipelineState::default().set_clear_color([0.8, 0.8, 0.8, 1.]),
+                &PipelineState::default(), //.set_clear_color([0.8, 0.8, 0.8, 1.]),
                 |pipeline, mut shd_gate| {
                     let bound_tex = pipeline.bind_texture(&mut ui_tex)?;
 
                     shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
                         iface.set(&uni.u_screen_size, self.canvas_size);
                         iface.set(&uni.u_sampler, bound_tex.binding());
-                        rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&u))
+                        // rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&u))
+                        rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&tess))
                     })
                 },
             )
