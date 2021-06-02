@@ -3,7 +3,7 @@
 
 #[macro_use]
 mod utils;
-pub mod scene;
+pub mod egui_luminance;
 
 use wasm_bindgen::prelude::*;
 
@@ -14,19 +14,19 @@ pub fn start() {
 
 #[wasm_bindgen]
 pub struct App {
-    scene: scene::Scene,
+    ui: egui_luminance::EguiLuminance,
 }
 
 #[wasm_bindgen]
 impl App {
     pub fn new() -> Result<App, JsValue> {
         Ok(App {
-            scene: scene::Scene::new(),
+            ui: egui_luminance::EguiLuminance::new(),
         })
     }
 
     pub fn tick(&mut self, t: f32) -> Result<(), JsValue> {
-        self.scene.render(t);
+        self.ui.render(t);
         Ok(())
     }
 }

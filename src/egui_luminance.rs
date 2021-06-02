@@ -19,12 +19,10 @@ use luminance_web_sys::WebSysWebGL2Surface;
 use egui::epaint::Texture as EguiTexture;
 use egui::{CtxRef, RawInput};
 
+/// The canvas ID
 const CANVAS: &str = "canvas";
-// const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
-// const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
-
-const VS_STR: &str = include_str!("shaders/vertex_debug_texture.glsl");
-const FS_STR: &str = include_str!("shaders/fragment_debug_texture.glsl");
+const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
+const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
 
 pub type VertexIndex = u32;
 
@@ -73,7 +71,7 @@ impl From<egui::Color32> for EguiVertexColor {
     }
 }
 
-pub struct Scene {
+pub struct EguiLuminance {
     egui_ctx: CtxRef,
     egui_texture: Option<Arc<EguiTexture>>,
     egui_texture_size: [u32; 2],
@@ -81,7 +79,7 @@ pub struct Scene {
     canvas_size: [f32; 2],
 }
 
-impl Scene {
+impl EguiLuminance {
     pub fn new() -> Self {
         Self {
             egui_ctx: CtxRef::default(),
@@ -92,13 +90,10 @@ impl Scene {
         }
     }
 
-    //    fn egui_texture_needs_update
-
     fn write_egui_texture(&mut self, texture: &mut Texture<Dim2, SRGBA8UI>) {
         let egui_texture = match self.egui_texture.clone() {
             Some(et) => et,
             None => {
-                //log!("No egui texture set!");
                 panic!("No egui texture set!");
             }
         };
@@ -112,8 +107,6 @@ impl Scene {
         for srgba in egui_texture.srgba_pixels() {
             texels.push((srgba.r(), srgba.g(), srgba.b(), srgba.a()));
         }
-
-        //        log!("{:?}", texels);
 
         let res = texture.upload(GenMipmaps::No, &texels);
         match res {
@@ -136,9 +129,7 @@ impl Scene {
 
         self.egui_ctx.begin_frame(i);
 
-        // todo factor out egui texture stuff
         self.egui_texture = Some(self.egui_ctx.texture());
-        // todo optimize for minimum copies / maximum sense
         self.egui_texture_size = [
             self.egui_ctx.texture().width as u32,
             self.egui_ctx.texture().height as u32,
@@ -151,10 +142,6 @@ impl Scene {
 
         let clipped_meshes = self.egui_ctx.tessellate(shapes);
 
-        // For now just grab the first mesh, maybe it is one mesh per panel?
-        // need to remain alert for when it needs to account for multiple meshes
-        // log!("egui mesh count: {:?}", clipped_meshes.len());
-
         let indices: Vec<u32> = clipped_meshes[0].1.indices.iter().copied().collect();
         let vertices: Vec<EguiVertex> = clipped_meshes[0]
             .1
@@ -166,11 +153,6 @@ impl Scene {
                 srgba: v.color.into(),
             })
             .collect();
-
-        //log!("egui vertices: {:?}", &vertices);
-        //log!("egui indices: {:?}", indices);
-        // vertices.iter().for_each(|v| log!("{:?} ", v.srgba));
-        // vertices.iter().for_each(|v| log!("{:?} ", v.tc));
 
         surface
             .new_tess()
@@ -198,7 +180,6 @@ impl Scene {
             });
         });
 
-        // todo reduce loading calls in hot loop
         let mut ui_tex: Texture<Dim2, SRGBA8UI> = Texture::new(
             &mut surface,
             self.egui_texture_size,
@@ -216,18 +197,11 @@ impl Scene {
         // Factor::SrcAlphaComplement => WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         // Backface culling is disabled by default
         // egui_web uses a scissor region
-        let render_st = &RenderState::default(); //.set_blending(Blending {
-                                                 //     equation: Equation::Additive,
-                                                 //     src: Factor::One,
-                                                 //     dst: Factor::SrcAlphaComplement,
-                                                 // });
-
-        let tess = surface
-            .new_tess()
-            .set_vertex_nb(4)
-            .set_mode(Mode::TriangleFan)
-            .build()
-            .unwrap();
+        let render_st = &RenderState::default().set_blending(Blending {
+            equation: Equation::Additive,
+            src: Factor::One,
+            dst: Factor::SrcAlphaComplement,
+        });
 
         let back_buffer = surface.back_buffer().unwrap();
 
@@ -238,12 +212,10 @@ impl Scene {
         let built_program = match building_program {
             Ok(p) => p,
             Err(_e) => {
-                log!("{:?}", _e);
+                //log!("{:?}", _e);
                 panic!("Can't build program");
             }
         };
-        // todo nicely print any warnings
-        // log!("{:?}", built_program.warnings);
 
         let mut program = built_program.ignore_warnings();
 
@@ -251,15 +223,14 @@ impl Scene {
             .new_pipeline_gate()
             .pipeline(
                 &back_buffer,
-                &PipelineState::default(), //.set_clear_color([0.8, 0.8, 0.8, 1.]),
+                &PipelineState::default().set_clear_color([0.9, 0.9, 0.9, 1.]),
                 |pipeline, mut shd_gate| {
                     let bound_tex = pipeline.bind_texture(&mut ui_tex)?;
 
                     shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
                         iface.set(&uni.u_screen_size, self.canvas_size);
                         iface.set(&uni.u_sampler, bound_tex.binding());
-                        // rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&u))
-                        rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&tess))
+                        rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&u))
                     })
                 },
             )
@@ -267,7 +238,7 @@ impl Scene {
     }
 }
 
-impl Default for Scene {
+impl Default for EguiLuminance {
     fn default() -> Self {
         Self::new()
     }

@@ -36,7 +36,4 @@ void main() {
   // WebGL doesn't support linear blending in the framebuffer,
   // so we apply this hack to at least get a bit closer to the desired blending:
   frag_color.a = pow(frag_color.a, 1.6); // Empiric nonsense
-
-//  frag_color = srgba_from_linear(v_rgba) / 255.0;
-//  frag_color = vec4(0.4, 0.0, 0.4, 1.0);
 }

@@ -20,22 +20,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "app"
-version = "0.1.0"
-dependencies = [
- "egui",
- "getrandom",
- "js-sys",
- "luminance",
- "luminance-derive",
- "luminance-front",
- "luminance-web-sys",
- "luminance-windowing",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "atomic_refcell"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -66,6 +50,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "788148861d80b87d28d64440a3d31cae190e50ccc3ea585597466d38428365d7"
 dependencies = [
  "epaint",
+]
+
+[[package]]
+name = "egui-luminance"
+version = "0.0.0"
+dependencies = [
+ "egui",
+ "getrandom",
+ "js-sys",
+ "luminance",
+ "luminance-derive",
+ "luminance-front",
+ "luminance-web-sys",
+ "luminance-windowing",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
