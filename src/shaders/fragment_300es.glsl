@@ -36,4 +36,7 @@ void main() {
   // WebGL doesn't support linear blending in the framebuffer,
   // so we apply this hack to at least get a bit closer to the desired blending:
   frag_color.a = pow(frag_color.a, 1.6); // Empiric nonsense
+
+// this is a hack for debugging suggested by @zicklag in https://github.com/emilk/egui/discussions/443
+  frag_color = v_rgba;
 }

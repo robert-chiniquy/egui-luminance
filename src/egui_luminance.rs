@@ -22,7 +22,8 @@ use egui::{CtxRef, RawInput};
 /// The canvas ID
 const CANVAS: &str = "canvas";
 const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
-const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
+const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
+// const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
 
 pub type VertexIndex = u32;
 
@@ -142,6 +143,8 @@ impl EguiLuminance {
 
         let clipped_meshes = self.egui_ctx.tessellate(shapes);
 
+        // log!("{:?}", clipped_meshes);
+
         let indices: Vec<u32> = clipped_meshes[0].1.indices.iter().copied().collect();
         let vertices: Vec<EguiVertex> = clipped_meshes[0]
             .1
@@ -193,15 +196,22 @@ impl EguiLuminance {
 
         self.write_egui_texture(&mut ui_tex);
 
-        // egui uses premultiplied alpha, so make sure your blending function is (ONE, ONE_MINUS_SRC_ALPHA).
-        // Factor::SrcAlphaComplement => WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-        // Backface culling is disabled by default
-        // egui_web uses a scissor region
-        let render_st = &RenderState::default().set_blending(Blending {
-            equation: Equation::Max, // set to Equation::Min to see the Egui region since drawing is broken
-            src: Factor::One,
-            dst: Factor::SrcAlphaComplement,
-        });
+        // scissor region??
+        let render_st = &RenderState::default()
+            .set_blending_separate(
+                Blending {
+                    equation: Equation::Additive,
+                    src: Factor::One,
+                    dst: Factor::SrcAlphaComplement,
+                },
+                Blending {
+                    equation: Equation::Additive,
+                    src: Factor::DstAlphaComplement,
+                    dst: Factor::One,
+                },
+            )
+            // This is also needed ( explained below )
+            .set_depth_test(None);
 
         let back_buffer = surface.back_buffer().unwrap();
 
@@ -212,7 +222,7 @@ impl EguiLuminance {
         let built_program = match building_program {
             Ok(p) => p,
             Err(_e) => {
-                //log!("{:?}", _e);
+                log!("{:?}", _e);
                 panic!("Can't build program");
             }
         };

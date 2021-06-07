@@ -29,4 +29,7 @@ void main() {
   // egui encodes vertex colors in gamma spaces, so we must decode the colors here:
   v_rgba = linear_from_srgba(a_srgba);
   v_tc = a_tc;
+
+// this is a hack for debugging suggested by @zicklag in https://github.com/emilk/egui/discussions/443
+  v_rgba = a_srgba;
 }

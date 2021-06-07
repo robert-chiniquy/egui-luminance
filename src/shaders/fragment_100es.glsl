@@ -1,8 +1,8 @@
 // luminance pragmas in the #version 300 es for all shaders
-precision mediump float;
-precision mediump usampler2D;
 
-uniform usampler2D u_sampler;
+precision mediump sampler2D;
+precision mediump float;
+uniform sampler2D u_sampler;
 in vec4 v_rgba;
 in vec2 v_tc;
 
@@ -45,8 +45,11 @@ void main() {
   // this stanza may be for webgl2?
   // if so, these two stanzas are alternatives
   // from the es300 example: The texture is set up with `SRGB8_ALPHA8`, so no need to decode here!
-  uvec4 i = texture(u_sampler, v_tc);
-  vec4 texture_rgba = vec4(float(i.r), float(i.g), float(i.b), float(i.a));
+
+  vec4 texture_rgba = linear_from_srgba(texture(u_sampler, v_tc));
+
+  // uvec4 i = texture(u_sampler, v_tc);
+  // vec4 texture_rgba = vec4(float(i.r), float(i.g), float(i.b), float(i.a));
   // end second stanza which might be wrong
 
   /// Multiply vertex color with texture color (in linear space).
@@ -59,7 +62,7 @@ void main() {
   // so we apply this hack to at least get a bit closer to the desired blending:
   frag_color.a = pow(frag_color.a, 1.6); // Empiric nonsense
 
-//  frag_color = v_rgba;
+  frag_color = v_rgba;
 //  frag_color.b = 0.5;
-  //frag_color = vec4(0.5, 0.5, 0.5, 1.0);
+  // frag_color = vec4(0.5, 0.5, 0.5, 1.0);
 }
