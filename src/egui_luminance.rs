@@ -22,8 +22,8 @@ use egui::{CtxRef, RawInput};
 /// The canvas ID
 const CANVAS: &str = "canvas";
 const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
-const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
-// const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
+// const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
+const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
 
 pub type VertexIndex = u32;
 
@@ -45,6 +45,48 @@ pub struct EguiVertex {
     #[vertex(normalized = "true")]
     srgba: EguiVertexColor,
 }
+
+/*
+From Luminance:
+https://github.com/phaazon/luminance-rs/blob/master/luminance-webgl/src/webgl2/pixel.rs#L4
+// WebGL format, internal sized-format and type.
+pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
+  match (pf.format, pf.encoding) {
+
+    (Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::NormUnsigned) => {
+      Some((
+        WebGl2RenderingContext::RGBA,
+        WebGl2RenderingContext::SRGB8_ALPHA8,
+        WebGl2RenderingContext::UNSIGNED_BYTE,
+      ))
+    }
+From Egui:
+                let level = 0;
+                let internal_format = Gl::SRGB8_ALPHA8;
+                let border = 0;
+                let src_format = Gl::RGBA;
+                let src_type = Gl::UNSIGNED_BYTE;
+                gl.pixel_storei(Gl::UNPACK_ALIGNMENT, 1);
+                gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+                    Gl::TEXTURE_2D,
+                    level,
+                    internal_format as i32,
+                    user_texture.size.0 as i32,
+                    user_texture.size.1 as i32,
+                    border,
+                    src_format,
+                    src_type,
+                    Some(&pixels),
+                )
+
+- Introduce normalized texturing. That feature is encoded as pixel formats: any pixel format which
+  symbol’s name starts with `Norm` is a _normalized pixel format_. Such formats state that the
+  texels are encoded as integers but when fetched from a shader, they are turned into
+  floating-point number by normalizing them. For instance, when fetching pixels from a texture
+  encoded with `R8UI`, you get integers ranging in `[0; 255]` but when fetching pixels from a
+  texture encoded with `NormR8UI`, even though texels are still stored as 8-bit unsigned integers,
+  when fetched, you get floating-point numbers comprised in `[0; 1]`.
+*/
 
 #[derive(Debug, UniformInterface)]
 struct EguiShaderInterface {
@@ -109,6 +151,8 @@ impl EguiLuminance {
             texels.push((srgba.r(), srgba.g(), srgba.b(), srgba.a()));
         }
 
+        // log!("{:?}", texels);
+
         let res = texture.upload(GenMipmaps::No, &texels);
         match res {
             Ok(_) => {
@@ -157,6 +201,8 @@ impl EguiLuminance {
             })
             .collect();
 
+        // log!("{:?}", vertices);
+
         surface
             .new_tess()
             .set_vertices(vertices)
@@ -183,6 +229,29 @@ impl EguiLuminance {
             });
         });
 
+        /* from Luminance:
+              macro_rules! impl_Pixel {
+        ($t:ty, $encoding:ty, $raw_encoding:ty, $encoding_ty:ident, $format:expr) => {
+          unsafe impl Pixel for $t {
+            type Encoding = $encoding;
+            type RawEncoding = $raw_encoding;
+            type SamplerType = $encoding_ty;
+
+            fn pixel_format() -> PixelFormat {
+              PixelFormat {
+                encoding: Type::$encoding_ty,
+                format: $format,
+              }
+            }
+
+              impl_Pixel!(
+                SRGBA8UI,
+                (u8, u8, u8, u8),
+                u8,
+                NormUnsigned,
+                Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight)
+              );
+              */
         let mut ui_tex: Texture<Dim2, SRGBA8UI> = Texture::new(
             &mut surface,
             self.egui_texture_size,
@@ -197,6 +266,7 @@ impl EguiLuminance {
         self.write_egui_texture(&mut ui_tex);
 
         // scissor region??
+        // Modified this from suggestion to match egui_web
         let render_st = &RenderState::default()
             .set_blending_separate(
                 Blending {
@@ -206,11 +276,10 @@ impl EguiLuminance {
                 },
                 Blending {
                     equation: Equation::Additive,
-                    src: Factor::DstAlphaComplement,
-                    dst: Factor::One,
+                    src: Factor::One,
+                    dst: Factor::DstAlphaComplement,
                 },
             )
-            // This is also needed ( explained below )
             .set_depth_test(None);
 
         let back_buffer = surface.back_buffer().unwrap();

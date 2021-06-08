@@ -30,13 +30,6 @@ void main() {
   /// Multiply vertex color with texture color (in linear space).
   frag_color = v_rgba * texture_rgba;
 
-  // We must gamma-encode again since WebGL doesn't support linear blending in the framebuffer.
-  frag_color = srgba_from_linear(v_rgba * texture_rgba) / 255.0;
-
-  // WebGL doesn't support linear blending in the framebuffer,
-  // so we apply this hack to at least get a bit closer to the desired blending:
-  frag_color.a = pow(frag_color.a, 1.6); // Empiric nonsense
-
 // this is a hack for debugging suggested by @zicklag in https://github.com/emilk/egui/discussions/443
-  frag_color = v_rgba;
+  // frag_color = v_rgba;
 }
