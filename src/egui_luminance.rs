@@ -209,6 +209,7 @@ impl EguiLuminance {
         self.write_egui_texture(&mut ui_tex);
 
         // scissor region??
+        // https://github.com/emilk/egui/blob/master/egui_glium/src/painter.rs#L166-L177
         let render_st = &RenderState::default()
             .set_blending_separate(
                 Blending {
@@ -218,8 +219,8 @@ impl EguiLuminance {
                 },
                 Blending {
                     equation: Equation::Additive,
-                    src: Factor::One,
-                    dst: Factor::SrcAlphaComplement,
+                    src: Factor::DstAlphaComplement,
+                    dst: Factor::One,
                 },
             )
             .set_depth_test(None);
