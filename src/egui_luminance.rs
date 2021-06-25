@@ -45,48 +45,6 @@ pub struct EguiVertex {
     srgba: EguiVertexColor,
 }
 
-/*
-From Luminance:
-https://github.com/phaazon/luminance-rs/blob/master/luminance-webgl/src/webgl2/pixel.rs#L4
-// WebGL format, internal sized-format and type.
-pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
-  match (pf.format, pf.encoding) {
-
-    (Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::NormUnsigned) => {
-      Some((
-        WebGl2RenderingContext::RGBA,
-        WebGl2RenderingContext::SRGB8_ALPHA8,
-        WebGl2RenderingContext::UNSIGNED_BYTE,
-      ))
-    }
-From Egui:
-                let level = 0;
-                let internal_format = Gl::SRGB8_ALPHA8;
-                let border = 0;
-                let src_format = Gl::RGBA;
-                let src_type = Gl::UNSIGNED_BYTE;
-                gl.pixel_storei(Gl::UNPACK_ALIGNMENT, 1);
-                gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-                    Gl::TEXTURE_2D,
-                    level,
-                    internal_format as i32,
-                    user_texture.size.0 as i32,
-                    user_texture.size.1 as i32,
-                    border,
-                    src_format,
-                    src_type,
-                    Some(&pixels),
-                )
-
-- Introduce normalized texturing. That feature is encoded as pixel formats: any pixel format which
-  symbol’s name starts with `Norm` is a _normalized pixel format_. Such formats state that the
-  texels are encoded as integers but when fetched from a shader, they are turned into
-  floating-point number by normalizing them. For instance, when fetching pixels from a texture
-  encoded with `R8UI`, you get integers ranging in `[0; 255]` but when fetching pixels from a
-  texture encoded with `NormR8UI`, even though texels are still stored as 8-bit unsigned integers,
-  when fetched, you get floating-point numbers comprised in `[0; 1]`.
-*/
-
 #[derive(Debug, UniformInterface)]
 struct EguiShaderInterface {
     #[uniform(unbound)]
@@ -103,6 +61,7 @@ impl From<egui::Pos2> for EguiVertexPosition {
 
 impl From<egui::Pos2> for EguiTextureCoords {
     fn from(p: egui::Pos2) -> Self {
+        // log!("texture coords: {:?}", p);
         EguiTextureCoords::new([p.x, p.y])
     }
 }
@@ -142,12 +101,14 @@ impl EguiLuminance {
             }
         };
 
+        // if the texture has not been updated since the version was updated
         if self.egui_texture_version == Some(egui_texture.version) {
             return;
         }
 
+        log!("texture updated");
+
         self.texels = Vec::with_capacity(egui_texture.pixels.len());
-        self.texels.clear();
         for srgba in egui_texture.srgba_pixels() {
             self.texels.push(srgba.r());
             self.texels.push(srgba.g());
