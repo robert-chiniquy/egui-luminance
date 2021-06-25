@@ -3,7 +3,7 @@
 #define texture2D texture
 #define GL2
 
-precision mediump float;
+precision highp float;
 uniform sampler2D u_sampler;
 in vec4 v_rgba;
 in vec2 v_tc;
@@ -28,7 +28,7 @@ void main() {
   // The texture is set up with `SRGB8_ALPHA8`, so no need to decode here!
   vec4 texture_rgba = texture2D(u_sampler, v_tc);
 
-  // texture_rgba = 0.9 - texture_rgba; //?
+  texture_rgba = 0.99 - texture_rgba; //?
 
   /// Multiply vertex color with texture color (in linear space).
   frag_color = v_rgba * texture_rgba;

@@ -3,7 +3,7 @@
 #define texture2D texture
 #define GL2
 
-precision mediump float;
+precision highp float;
 uniform vec2 u_screen_size;
 attribute vec2 a_pos;
 attribute vec2 a_tc;
@@ -33,7 +33,6 @@ void main() {
   // Luminance normalizing the integers (without gamma correction) is
   // already doing the conversion expected in Egui's WebGL2 vertex shader
   // is gamma correction needed though?
-
   // v_rgba = linear_from_srgba(a_srgba);
   // Thanks to @zicklag in https://github.com/emilk/egui/discussions/443
   v_rgba = a_srgba;

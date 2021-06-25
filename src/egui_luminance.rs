@@ -78,7 +78,6 @@ pub struct EguiLuminance {
     egui_texture_size: [u32; 2],
     egui_texture_version: Option<u64>,
     canvas_size: [f32; 2],
-    texels: Vec<u8>,
 }
 
 impl EguiLuminance {
@@ -89,7 +88,6 @@ impl EguiLuminance {
             egui_texture_size: [0, 0],
             egui_texture_version: None,
             canvas_size: [0., 0.],
-            texels: Vec::with_capacity(524288),
         }
     }
 
@@ -108,15 +106,15 @@ impl EguiLuminance {
 
         log!("texture updated");
 
-        self.texels = Vec::with_capacity(egui_texture.pixels.len() * 4);
+        let mut texels = Vec::with_capacity(egui_texture.pixels.len() * 4);
         for srgba in egui_texture.srgba_pixels() {
-            self.texels.push(srgba.r());
-            self.texels.push(srgba.g());
-            self.texels.push(srgba.b());
-            self.texels.push(srgba.a());
+            texels.push(srgba.r());
+            texels.push(srgba.g());
+            texels.push(srgba.b());
+            texels.push(srgba.a());
         }
 
-        let res = texture.upload_raw(GenMipmaps::No, &self.texels);
+        let res = texture.upload_raw(GenMipmaps::No, &texels);
         match res {
             Ok(_) => {
                 self.egui_texture_version = Some(egui_texture.version);
@@ -148,13 +146,14 @@ impl EguiLuminance {
 
         builder(&self.egui_ctx);
 
-        let (_output, shapes) = self.egui_ctx.end_frame();
-        // TODO handle output
+        let (_, shapes) = self.egui_ctx.end_frame();
 
         let clipped_meshes = self.egui_ctx.tessellate(shapes);
 
         // log!("clipped mesh length: {:?}", clipped_meshes.len());
 
+        // could try a hack and just set vertex colors by multiplying against the
+        // texture value on the cpu
         let indices: Vec<u32> = clipped_meshes[0].1.indices.iter().copied().collect();
         let vertices: Vec<EguiVertex> = clipped_meshes[0]
             .1
@@ -200,7 +199,7 @@ impl EguiLuminance {
             self.egui_texture_size,
             0,
             Sampler {
-                min_filter: MinFilter::Linear,
+                min_filter: MinFilter::Nearest,
                 ..Sampler::default()
             },
         )
@@ -227,7 +226,7 @@ impl EguiLuminance {
 
         let pipeline_st = PipelineState::default()
             .enable_srgb(true)
-            .set_clear_color([0.8, 0.8, 0.8, 1.]);
+            .set_clear_color([0.8, 0.8, 0.8, 0.9]);
 
         let back_buffer = surface.back_buffer().unwrap();
 
