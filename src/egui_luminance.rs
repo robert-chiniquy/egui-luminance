@@ -108,7 +108,7 @@ impl EguiLuminance {
 
         log!("texture updated");
 
-        self.texels = Vec::with_capacity(egui_texture.pixels.len());
+        self.texels = Vec::with_capacity(egui_texture.pixels.len() * 4);
         for srgba in egui_texture.srgba_pixels() {
             self.texels.push(srgba.r());
             self.texels.push(srgba.g());
