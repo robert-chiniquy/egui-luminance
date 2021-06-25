@@ -10,6 +10,7 @@ attribute vec2 a_tc;
 attribute vec4 a_srgba;
 varying vec4 v_rgba;
 varying vec2 v_tc;
+varying vec2 v_pos;
 
 void main() {
   gl_Position = vec4(2.0 * a_pos.x / u_screen_size.x - 1.0, 1.0 - 2.0 * a_pos.y / u_screen_size.y, 0.0, 1.0);
@@ -18,6 +19,9 @@ void main() {
 // Luminance normalizing the integers (without gamma correction) is
 // already doing the conversion expected in Egui's WebGL2 vertex shader
 
+  // is gamma correction needed?
+
 // Thanks to @zicklag in https://github.com/emilk/egui/discussions/443
   v_rgba = a_srgba;
+  v_pos = a_pos;
 }

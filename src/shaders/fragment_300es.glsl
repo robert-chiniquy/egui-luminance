@@ -7,6 +7,7 @@ precision mediump float;
 uniform sampler2D u_sampler;
 in vec4 v_rgba;
 in vec2 v_tc;
+in vec2 v_pos;
 
 out vec4 frag_color;
 
@@ -32,4 +33,22 @@ void main() {
 
 // this is a hack for debugging suggested by @zicklag in https://github.com/emilk/egui/discussions/443
   // frag_color = v_rgba;
+  // frag_color = texture_rgba;
+
+  // Unmultiply alpha:
+  if(frag_color.a > 0.0) {
+    frag_color.rgb /= frag_color.a;
+  }
+
+  // Empiric tweak to make e.g. shadows look more like they should:
+  frag_color.a *= sqrt(frag_color.a);
+
+  // To gamma:
+  frag_color = srgba_from_linear(frag_color) / 255.0;
+
+  // Premultiply alpha, this time in gamma space:
+  if(frag_color.a > 0.0) {
+    frag_color.rgb *= frag_color.a;
+  }
+
 }

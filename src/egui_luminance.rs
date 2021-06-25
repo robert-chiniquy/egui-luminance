@@ -19,10 +19,9 @@ use luminance_web_sys::WebSysWebGL2Surface;
 use egui::epaint::Texture as EguiTexture;
 use egui::{CtxRef, RawInput};
 
-/// The canvas ID
 const CANVAS: &str = "canvas";
+
 const VS_STR: &str = include_str!("shaders/vertex_300es.glsl");
-// const FS_STR: &str = include_str!("shaders/fragment_100es.glsl");
 const FS_STR: &str = include_str!("shaders/fragment_300es.glsl");
 
 pub type VertexIndex = u32;
@@ -120,6 +119,7 @@ pub struct EguiLuminance {
     egui_texture_size: [u32; 2],
     egui_texture_version: Option<u64>,
     canvas_size: [f32; 2],
+    texels: Vec<u8>,
 }
 
 impl EguiLuminance {
@@ -130,6 +130,7 @@ impl EguiLuminance {
             egui_texture_size: [0, 0],
             egui_texture_version: None,
             canvas_size: [0., 0.],
+            texels: Vec::with_capacity(524288),
         }
     }
 
@@ -145,21 +146,22 @@ impl EguiLuminance {
             return;
         }
 
-        let mut texels: Vec<(u8, u8, u8, u8)> = Vec::with_capacity(egui_texture.pixels.len());
-
+        self.texels = Vec::with_capacity(egui_texture.pixels.len());
+        self.texels.clear();
         for srgba in egui_texture.srgba_pixels() {
-            texels.push((srgba.r(), srgba.g(), srgba.b(), srgba.a()));
+            self.texels.push(srgba.r());
+            self.texels.push(srgba.g());
+            self.texels.push(srgba.b());
+            self.texels.push(srgba.a());
         }
 
-        // log!("{:?}", texels);
-
-        let res = texture.upload(GenMipmaps::No, &texels);
+        let res = texture.upload_raw(GenMipmaps::No, &self.texels);
         match res {
             Ok(_) => {
                 self.egui_texture_version = Some(egui_texture.version);
             }
             Err(_e) => {
-                //log!("{:?}", e);
+                log!("{:?}", _e);
                 panic!("texture upload error");
             }
         };
@@ -170,7 +172,10 @@ impl EguiLuminance {
         C: GraphicsContext<Backend = Backend>,
         F: Fn(&CtxRef),
     {
-        let i = RawInput::default(); // todo handle input
+        let i = RawInput {
+            pixels_per_point: Some(2.0),
+            ..RawInput::default()
+        };
 
         self.egui_ctx.begin_frame(i);
 
@@ -187,7 +192,7 @@ impl EguiLuminance {
 
         let clipped_meshes = self.egui_ctx.tessellate(shapes);
 
-        // log!("{:?}", clipped_meshes);
+        // log!("clipped mesh length: {:?}", clipped_meshes.len());
 
         let indices: Vec<u32> = clipped_meshes[0].1.indices.iter().copied().collect();
         let vertices: Vec<EguiVertex> = clipped_meshes[0]
@@ -229,29 +234,6 @@ impl EguiLuminance {
             });
         });
 
-        /* from Luminance:
-              macro_rules! impl_Pixel {
-        ($t:ty, $encoding:ty, $raw_encoding:ty, $encoding_ty:ident, $format:expr) => {
-          unsafe impl Pixel for $t {
-            type Encoding = $encoding;
-            type RawEncoding = $raw_encoding;
-            type SamplerType = $encoding_ty;
-
-            fn pixel_format() -> PixelFormat {
-              PixelFormat {
-                encoding: Type::$encoding_ty,
-                format: $format,
-              }
-            }
-
-              impl_Pixel!(
-                SRGBA8UI,
-                (u8, u8, u8, u8),
-                u8,
-                NormUnsigned,
-                Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight)
-              );
-              */
         let mut ui_tex: Texture<Dim2, SRGBA8UI> = Texture::new(
             &mut surface,
             self.egui_texture_size,
@@ -266,7 +248,6 @@ impl EguiLuminance {
         self.write_egui_texture(&mut ui_tex);
 
         // scissor region??
-        // Modified this from suggestion to match egui_web
         let render_st = &RenderState::default()
             .set_blending_separate(
                 Blending {
@@ -277,10 +258,14 @@ impl EguiLuminance {
                 Blending {
                     equation: Equation::Additive,
                     src: Factor::One,
-                    dst: Factor::DstAlphaComplement,
+                    dst: Factor::SrcAlphaComplement,
                 },
             )
             .set_depth_test(None);
+
+        let pipeline_st = PipelineState::default()
+            .enable_srgb(true)
+            .set_clear_color([0.8, 0.8, 0.8, 1.]);
 
         let back_buffer = surface.back_buffer().unwrap();
 
@@ -300,19 +285,15 @@ impl EguiLuminance {
 
         let _ = surface
             .new_pipeline_gate()
-            .pipeline(
-                &back_buffer,
-                &PipelineState::default().set_clear_color([0.9, 0.9, 0.9, 1.]),
-                |pipeline, mut shd_gate| {
-                    let bound_tex = pipeline.bind_texture(&mut ui_tex)?;
+            .pipeline(&back_buffer, &pipeline_st, |pipeline, mut shd_gate| {
+                let bound_tex = pipeline.bind_texture(&mut ui_tex)?;
 
-                    shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
-                        iface.set(&uni.u_screen_size, self.canvas_size);
-                        iface.set(&uni.u_sampler, bound_tex.binding());
-                        rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&u))
-                    })
-                },
-            )
+                shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
+                    iface.set(&uni.u_screen_size, self.canvas_size);
+                    iface.set(&uni.u_sampler, bound_tex.binding());
+                    rdr_gate.render(&render_st, |mut tess_gate| tess_gate.render(&u))
+                })
+            })
             .assume();
     }
 }
