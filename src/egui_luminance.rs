@@ -153,7 +153,7 @@ impl EguiLuminance {
         // log!("clipped mesh length: {:?}", clipped_meshes.len());
 
         // could try a hack and just set vertex colors by multiplying against the
-        // texture value on the cpu
+        // texture value on the cpu, would need triangle interpolation
         let indices: Vec<u32> = clipped_meshes[0].1.indices.iter().copied().collect();
         let vertices: Vec<EguiVertex> = clipped_meshes[0]
             .1
@@ -226,7 +226,7 @@ impl EguiLuminance {
 
         let pipeline_st = PipelineState::default()
             .enable_srgb(true)
-            .set_clear_color([0.8, 0.8, 0.8, 0.9]);
+            .set_clear_color([0.8, 0.1, 0.8, 0.15]); // pink to distinguish between canvas background color
 
         let back_buffer = surface.back_buffer().unwrap();
 

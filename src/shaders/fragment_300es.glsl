@@ -1,7 +1,5 @@
 #define attribute in
 #define varying out
-#define texture2D texture
-#define GL2
 
 precision highp float;
 uniform sampler2D u_sampler;
@@ -23,19 +21,32 @@ vec4 srgba_from_linear(vec4 rgba) {
   return vec4(srgb_from_linear(rgba.rgb), 255.0 * rgba.a);
 }
 
+// 0-1 linear  from  0-255 sRGB
+vec3 linear_from_srgb(vec3 srgb) {
+  bvec3 cutoff = lessThan(srgb, vec3(10.31475));
+  vec3 lower = srgb / vec3(3294.6);
+  vec3 higher = pow((srgb + vec3(14.025)) / vec3(269.025), vec3(2.4));
+  return mix(higher, lower, vec3(cutoff));
+}
+
+// 0-1 linear  from  0-255 sRGBA
+vec4 linear_from_srgba(vec4 srgba) {
+  return vec4(linear_from_srgb(srgba.rgb), srgba.a / 255.0);
+}
+
 void main() {
-
   // The texture is set up with `SRGB8_ALPHA8`, so no need to decode here!
-  vec4 texture_rgba = texture2D(u_sampler, v_tc);
+  vec4 texture_rgba = texture(u_sampler, v_tc);
 
-  texture_rgba = 0.99 - texture_rgba; //?
+//  texture_rgba = vec4(texture_rgba.xyz, 0.6);
+
+  // should not be needed
+  // texture_rgba = linear_from_srgba(texture_rgba);
+
+  // texture_rgba = 0.99 - texture_rgba;
 
   /// Multiply vertex color with texture color (in linear space).
   frag_color = v_rgba * texture_rgba;
-
-// this is a hack for debugging suggested by @zicklag in https://github.com/emilk/egui/discussions/443
-  // frag_color = v_rgba;
-  // frag_color = texture_rgba;
 
   // Unmultiply alpha:
   if(frag_color.a > 0.0) {
